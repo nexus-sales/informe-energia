@@ -237,7 +237,7 @@
                     '',
                     '{',
                     '"comercializadora": string,',
-                    '"productoTarifa": string o null (nombre comercial del producto/tarifa, si lo indica el documento),',
+                    '"productoTarifa": string o null (nombre comercial de la tarifa/producto tal como lo presenta la comercializadora como título de su oferta, p.ej. "NIBA ZEN ENCHUFATE" o "PRECIO FIJO V31" — NUNCA un servicio adicional, complemento o línea del desglose económico como "Asistente Smart Hogar"; si el documento no da un nombre propio de tarifa, usa null: no tomes prestado el nombre de otro concepto),',
                     '"tarifaAcceso": string o null (p.ej. "2.0TD"),',
                     '"fechaOferta": string o null,',
                     '"referenciaOferta": string o null (número de oferta, factura o estudio),',
@@ -246,7 +246,7 @@
                     '"potenciaContratada": string o null,',
                     '"consumoPeriodo": string o null,',
                     '"notasInstalacion": string o null (p.ej. autoconsumo solar, excedentes, si se menciona),',
-                    '"desglose": [ { "concepto": string, "importe": string } ] (líneas del desglose económico de la oferta, en orden),',
+                    '"desglose": [ { "concepto": string, "importe": string } ] (SOLO conceptos de coste individuales: consumo por periodo, potencia por periodo, servicios adicionales con su propio importe, impuestos aplicados a un concepto concreto. NO incluyas líneas de "Subtotal", "Total", "Total oferta" ni "IVA total"/IVA acumulado del documento original — la plantilla del informe calcula y muestra el total final ella misma, y repetirlo aquí lo duplica),',
                     '"totalOferta": string (importe total de la oferta),',
                     '"facturaActualEstimada": string o null (si el documento no da el importe de la factura actual pero sí el ahorro en euros, CALCÚLALO sumando total de la oferta + ahorro en euros e indícalo; si no hay datos suficientes, null),',
                     '"ahorroImporte": string o null,',
@@ -266,7 +266,9 @@
                     '- Sé conciso en los textos para no exceder el límite de salida.',
                     '- Redacta "resumenRecomendacion" como criterio de asesor energético: indica por qué conviene o no conviene, y menciona cautelas contractuales si aplican.',
                     '- En "puntosClave", prioriza ahorro, permanencia, servicios adicionales, impuestos, potencia/tarifa y próximo paso verificable.',
-                    '- En "resumenRecomendacion" y "puntosClave", dirígete siempre al cliente de tú (tuteo): "tu factura", "ahorras", "tu potencia". No uses nunca la forma "usted".'
+                    '- En "resumenRecomendacion" y "puntosClave", dirígete siempre al cliente de tú (tuteo): "tu factura", "ahorras", "tu potencia". No uses nunca la forma "usted".',
+                    '- "desglose" no debe contener ninguna fila de subtotal ni total: si dudas si una línea es un total o un concepto individual, exclúyela del array.',
+                    '- "productoTarifa" nunca debe coincidir textualmente con ninguna fila de "desglose": son campos distintos y no deben mezclarse.'
                 ].join('\n');
 
                 var headers = { 'Content-Type': 'application/json' };
@@ -280,7 +282,7 @@
                     headers: headers,
                     body: JSON.stringify({
                         model: 'claude-sonnet-4-6',
-                        max_tokens: 1000,
+                        max_tokens: 2000,
                         messages: [{
                             role: 'user',
                             content: [
@@ -305,7 +307,10 @@
                 var cleaned = raw.replace(/^```json\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
                 var parsed;
                 try { parsed = JSON.parse(cleaned); }
-                catch (e) { throw new Error('La respuesta no tiene el formato esperado. Prueba a generar el informe de nuevo.'); }
+                catch (e) {
+                    console.error('extractWithClaude: fallo al parsear JSON. stop_reason=' + data.stop_reason + ', longitud=' + cleaned.length + ', texto crudo:\n' + cleaned);
+                    throw new Error('La respuesta no tiene el formato esperado. Prueba a generar el informe de nuevo.');
+                }
                 return parsed;
             }
 
@@ -680,7 +685,7 @@
                     '<span class="ficha-label">' + label + '</span>' +
                     '<span class="ficha-value">' +
                     '<input class="field-edit" type="text" data-field="' + field + '" value="' + escapeHtml(value) + '" placeholder="' + escapeHtml(placeholder) + '">' +
-                    '<span class="field-print" data-placeholder="' + escapeHtml(placeholder) + '">' + (value ? escapeHtml(value) : escapeHtml(placeholder)) + '</span>' +
+                    '<span class="field-print">' + (value ? escapeHtml(value) : '') + '</span>' +
                     '</span>' +
                     '</div>';
             }
@@ -926,7 +931,7 @@
                         var field = e.target.dataset.field;
                         currentRecord[field] = e.target.value;
                         var printSpan = e.target.parentElement.querySelector('.field-print');
-                        if (printSpan) printSpan.textContent = e.target.value || printSpan.dataset.placeholder;
+                        if (printSpan) printSpan.textContent = e.target.value || '';
                         var row = e.target.closest('.ficha-row');
                         if (row) row.classList.toggle('ficha-row-empty', !e.target.value);
                         scheduleSave();
