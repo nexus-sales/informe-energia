@@ -12,6 +12,8 @@
             --red: #B23B3B;
             --green-bg: #E8F4EE;
             --amber-bg: #FBF1E1;
+            --indigo: #5C6BC0;
+            --indigo-bg: #ECEEFA;
             --radius: 10px;
             --font-display: 'Fraunces', Georgia, serif;
             --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -458,6 +460,87 @@
             margin: 0 0 22px;
         }
 
+        .advisor-summary {
+            border: 1px solid #BFD8D3;
+            border-left: 6px solid var(--teal-dark);
+            border-radius: 12px;
+            background: linear-gradient(180deg, #F7FBF9 0%, #FFFFFF 100%);
+            padding: 20px 22px;
+            margin: 18px 0 24px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .advisor-verdict {
+            margin-bottom: 16px;
+        }
+
+        .advisor-eyebrow {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: .08em;
+            color: var(--teal-dark);
+            font-weight: 700;
+            margin: 0 0 5px;
+        }
+
+        .advisor-verdict h2 {
+            font-family: var(--font-display);
+            font-size: 22px;
+            line-height: 1.18;
+            color: var(--navy-dark);
+            margin: 0 0 6px;
+        }
+
+        .advisor-verdict p,
+        .advisor-rationale p {
+            font-size: 13px;
+            line-height: 1.58;
+            color: #2E3B45;
+            margin: 0;
+        }
+
+        .advisor-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin: 0 0 14px;
+        }
+
+        .advisor-metric {
+            background: #FFFFFF;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 11px 12px;
+        }
+
+        .advisor-metric span {
+            display: block;
+            font-family: var(--font-mono);
+            font-size: 9.5px;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        .advisor-metric strong {
+            display: block;
+            font-family: var(--font-display);
+            font-size: 16px;
+            line-height: 1.2;
+            color: var(--teal-dark);
+        }
+
+        .advisor-rationale {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            border-top: 1px solid var(--line);
+            padding-top: 14px;
+        }
+
         .ficha {
             border: 1px solid var(--line);
             border-radius: 10px;
@@ -553,6 +636,8 @@
             border-bottom: 1px solid var(--line);
             padding-bottom: 8px;
             margin: 30px 0 14px;
+            page-break-after: avoid;
+            break-after: avoid;
         }
 
         p.section-intro {
@@ -595,23 +680,23 @@
             font-family: var(--font-body);
         }
 
-        table.comparativa-table thead td {
-            font-family: var(--font-body);
-            font-weight: 600;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: .03em;
-            color: var(--muted);
-            border-bottom: 2px solid var(--line);
-            background: transparent !important;
+        /* ---------- per-offer accent colors ----------
+           Position-based, not semantic: 1st offer uploaded = teal, 2nd = amber,
+           3rd = indigo. Lets a client track the same offer across the savings
+           card, the desglose block and the recommendation card at a glance. */
+        .offer-accent-1 {
+            --offer-color: var(--teal-dark);
+            --offer-tint: var(--green-bg);
         }
 
-        table.comparativa-table td.diff-negative {
-            color: var(--teal-dark);
+        .offer-accent-2 {
+            --offer-color: var(--amber);
+            --offer-tint: var(--amber-bg);
         }
 
-        table.comparativa-table td.diff-positive {
-            color: var(--red);
+        .offer-accent-3 {
+            --offer-color: var(--indigo);
+            --offer-tint: var(--indigo-bg);
         }
 
         .savings-cards-row {
@@ -622,19 +707,21 @@
         }
 
         .savings-card {
-            flex: 1 1 260px;
+            flex: 1 1 220px;
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
             background: var(--green-bg);
             border: 1px solid #BFE0CD;
+            border-left: 4px solid var(--offer-color, #BFE0CD);
             border-radius: 12px;
-            padding: 16px 18px;
+            padding: 16px 16px;
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
 
         .savings-card-best {
-            border-color: var(--teal);
-            box-shadow: 0 0 0 1px var(--teal) inset;
+            box-shadow: 0 3px 14px rgba(14, 32, 56, 0.1);
         }
 
         .savings-crm {
@@ -659,6 +746,10 @@
             vertical-align: middle;
         }
 
+        .gauge {
+            flex: 0 0 auto;
+        }
+
         .gauge text.gauge-text {
             font-family: var(--font-mono);
             font-size: 15px;
@@ -668,27 +759,21 @@
 
         .savings-copy {
             flex: 1;
+            min-width: 0;
         }
 
         .savings-main {
             font-family: var(--font-display);
             font-weight: 600;
-            font-size: 17px;
+            font-size: 16px;
             color: var(--teal-dark);
             margin: 0 0 4px;
         }
 
         .savings-sub {
-            font-size: 12.5px;
+            font-size: 12px;
             color: #3B4650;
             margin: 0;
-        }
-
-        .diff-sub {
-            font-family: var(--font-mono);
-            font-size: 10.5px;
-            font-weight: 600;
-            margin-top: 2px;
         }
 
         .subsection-title {
@@ -696,18 +781,41 @@
             font-size: 14px;
             font-weight: 600;
             color: var(--navy);
-            margin: 22px 0 10px;
+            margin: 0 0 10px;
+        }
+
+        .offer-block {
+            margin-bottom: 22px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .offer-block.offer-accent-1,
+        .offer-block.offer-accent-2,
+        .offer-block.offer-accent-3 {
+            border-left: 3px solid var(--offer-color);
+            padding-left: 14px;
         }
 
         .offer-recommendation {
-            margin-bottom: 18px;
-            padding-bottom: 14px;
-            border-bottom: 1px solid var(--line);
+            border-left: 4px solid var(--line);
+            background: #FAFBFA;
+            border-radius: 10px;
+            padding: 16px 18px;
+            margin-bottom: 14px;
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
 
-        .offer-recommendation:last-of-type {
-            border-bottom: none;
-            padding-bottom: 0;
+        .offer-recommendation.offer-accent-1,
+        .offer-recommendation.offer-accent-2,
+        .offer-recommendation.offer-accent-3 {
+            border-left-color: var(--offer-color);
+            background: var(--offer-tint);
+        }
+
+        .offer-recommendation:last-child {
+            margin-bottom: 0;
         }
 
         .offer-recommendation-name {
@@ -715,7 +823,44 @@
             font-weight: 600;
             font-size: 14px;
             color: var(--navy-dark);
-            margin: 0 0 4px;
+            margin: 0 0 6px;
+        }
+
+        .professional-recommendation {
+            border: 1px solid #BFD8D3;
+            border-left: 5px solid var(--teal-dark);
+            background: #F4FAF7;
+            border-radius: 10px;
+            padding: 18px 20px;
+            margin: 0 0 14px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .professional-recommendation .section-intro:last-child {
+            margin-bottom: 0;
+        }
+
+        .alternatives-note {
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: #FFFFFF;
+            padding: 15px 18px;
+            margin: 0 0 14px;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .alternatives-note ul {
+            margin: 0;
+            padding-left: 18px;
+        }
+
+        .alternatives-note li {
+            font-size: 12.5px;
+            color: #34424D;
+            line-height: 1.55;
+            margin: 4px 0;
         }
 
         ul.key-points {
@@ -741,26 +886,29 @@
         }
 
         .cta-box {
-            background: var(--navy-dark);
-            color: #DCE6EF;
+            background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+            color: #fff;
             border-radius: 12px;
-            padding: 20px 24px;
-            margin: 18px 0 20px;
+            padding: 22px 26px;
+            margin: 20px 0 22px;
+            box-shadow: 0 6px 18px rgba(11, 99, 85, 0.28);
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
 
         .cta-title {
             font-family: var(--font-display);
-            font-size: 16px;
+            font-size: 18px;
             font-weight: 600;
             color: #fff;
-            margin: 0 0 8px;
+            margin: 0 0 9px;
         }
 
         .cta-line {
-            font-size: 12.5px;
-            color: #C6D5E0;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.92);
             margin: 0 0 4px;
-            line-height: 1.5;
+            line-height: 1.55;
         }
 
         .disclaimer {
@@ -859,6 +1007,32 @@
             font-size: 13.5px;
         }
 
+        @media (max-width: 760px) {
+            .report-printable {
+                padding: 26px 22px;
+            }
+
+            .advisor-metrics,
+            .advisor-rationale {
+                grid-template-columns: 1fr;
+            }
+
+            .advisor-verdict h2 {
+                font-size: 19px;
+            }
+
+            .ficha-row {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 4px;
+            }
+
+            .ficha-label {
+                width: auto;
+                flex: 0 0 auto;
+            }
+        }
+
         @media print {
 
             .sidebar,
@@ -883,6 +1057,14 @@
             }
 
             input.field-edit {
+                display: none !important;
+            }
+
+            .ficha-row-empty {
+                display: none !important;
+            }
+
+            .ficha-client:not(:has(.ficha-row:not(.ficha-row-empty))) {
                 display: none !important;
             }
 

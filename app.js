@@ -42,15 +42,11 @@
                 var m = String(str).replace(',', '.').match(/-?\d+(\.\d+)?/);
                 return m ? parseFloat(m[0]) : null;
             }
-            function parseEuro(str) {
-                if (!str) return null;
-                var m = String(str).replace(/\./g, '').replace(',', '.').match(/-?\d+(\.\d+)?/);
-                return m ? parseFloat(m[0]) : null;
-            }
-            function formatDiffEuro(n) {
-                if (n === null || n === undefined || isNaN(n)) return '—';
-                var val = Math.abs(n).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                return (n > 0 ? '+' : (n < 0 ? '-' : '')) + val + ' €';
+            function firstValue(values, fallback) {
+                for (var i = 0; i < values.length; i++) {
+                    if (values[i]) return values[i];
+                }
+                return fallback || '';
             }
             function gaugeSVG(pct) {
                 var size = 64, stroke = 7;
@@ -267,7 +263,10 @@
                     'Reglas importantes:',
                     '- No inventes ni asumas datos que no estén en el documento: usa null si no aparecen.',
                     '- Importes en formato "12,34 €" (coma decimal, símbolo de euro).',
-                    '- Sé conciso en los textos para no exceder el límite de salida.'
+                    '- Sé conciso en los textos para no exceder el límite de salida.',
+                    '- Redacta "resumenRecomendacion" como criterio de asesor energético: indica por qué conviene o no conviene, y menciona cautelas contractuales si aplican.',
+                    '- En "puntosClave", prioriza ahorro, permanencia, servicios adicionales, impuestos, potencia/tarifa y próximo paso verificable.',
+                    '- En "resumenRecomendacion" y "puntosClave", dirígete siempre al cliente de tú (tuteo): "tu factura", "ahorras", "tu potencia". No uses nunca la forma "usted".'
                 ].join('\n');
 
                 var headers = { 'Content-Type': 'application/json' };
@@ -677,7 +676,7 @@
             // ---------------- render: report ----------------
             function editableRow(label, field, placeholder) {
                 var value = currentRecord[field] || '';
-                return '<div class="ficha-row">' +
+                return '<div class="ficha-row' + (value ? '' : ' ficha-row-empty') + '">' +
                     '<span class="ficha-label">' + label + '</span>' +
                     '<span class="ficha-value">' +
                     '<input class="field-edit" type="text" data-field="' + field + '" value="' + escapeHtml(value) + '" placeholder="' + escapeHtml(placeholder) + '">' +
@@ -710,10 +709,34 @@
                     puntosClave: r.puntosClave, nombreArchivo: r.nombreArchivo
                 }];
                 var multi = ofertas.length > 1;
+                if (multi) {
+                    // ordenadas de mayor a menor ahorro para que el badge "mayor ahorro",
+                    // el orden de las tarjetas y el orden de las recomendaciones coincidan
+                    // siempre — evita que el cliente vea una oferta destacada y otra distinta
+                    // encabezando la recomendación.
+                    ofertas = ofertas.slice().sort(function (a, b) {
+                        var pa = parsePercent(a.ahorroPorcentaje);
+                        var pb = parsePercent(b.ahorroPorcentaje);
+                        if (pa === null && pb === null) return 0;
+                        if (pa === null) return 1;
+                        if (pb === null) return -1;
+                        return pb - pa;
+                    });
+                }
+                var recommendedOffer = ofertas[0] || {};
+                var recommendedName = recommendedOffer.comercializadora || 'la oferta recomendada';
+                var advisorVerdict = multi
+                    ? 'Recomendamos valorar ' + escapeHtml(recommendedName) + ' como primera opci&oacute;n por ser la alternativa con mayor ahorro estimado dentro de las ofertas analizadas.'
+                    : 'La propuesta analizada presenta una oportunidad de ahorro frente a tu situaci&oacute;n actual, siempre que las condiciones contractuales se confirmen antes de firmar.';
+                var advisorSaving = recommendedOffer.ahorroImporte
+                    ? escapeHtml(recommendedOffer.ahorroImporte) + (recommendedOffer.ahorroPorcentaje ? ' (' + escapeHtml(recommendedOffer.ahorroPorcentaje) + ')' : '')
+                    : (recommendedOffer.ahorroPorcentaje ? escapeHtml(recommendedOffer.ahorroPorcentaje) : 'Pendiente de confirmar');
+                var advisorAnnual = recommendedOffer.ahorroAnualEstimado || 'No indicado';
+                var advisorTariff = firstValue([recommendedOffer.productoTarifa, recommendedOffer.tarifaAcceso, r.tarifaAcceso], 'Oferta analizada');
 
                 var title = multi
-                    ? 'Comparativa de ' + ofertas.length + ' ofertas para tu suministro'
-                    : ('Propuesta de cambio: ' + escapeHtml(ofertas[0].comercializadora || 'Comercializadora') +
+                    ? 'Informe de asesor&iacute;a energ&eacute;tica'
+                    : ('Informe de asesor&iacute;a energ&eacute;tica: ' + escapeHtml(ofertas[0].comercializadora || 'Comercializadora') +
                         (ofertas[0].productoTarifa ? ' — ' + escapeHtml(ofertas[0].productoTarifa) : ''));
                 var subtitleParts = [];
                 if (r.tarifaAcceso) subtitleParts.push('Tarifa de acceso ' + escapeHtml(r.tarifaAcceso));
@@ -723,29 +746,32 @@
                     return escapeHtml(o.comercializadora || 'Comercializadora') + (o.productoTarifa ? ' (' + escapeHtml(o.productoTarifa) + ')' : '');
                 }).join(' · ') : '';
 
-                var facturaVal = parseEuro(r.facturaActualEstimada);
-                var periodoLabel = 'Total del periodo' + (r.periodoDescripcion ? ' (' + escapeHtml(r.periodoDescripcion) + ')' : '');
+                var advisorSummaryHtml =
+                    '<section class="advisor-summary">' +
+                    '<div class="advisor-verdict">' +
+                    '<p class="advisor-eyebrow">Dictamen del asesor</p>' +
+                    '<h2>' + escapeHtml(recommendedName) + '</h2>' +
+                    '<p>' + advisorVerdict + '</p>' +
+                    '</div>' +
+                    '<div class="advisor-metrics">' +
+                    '<div class="advisor-metric"><span>Ahorro estimado</span><strong>' + advisorSaving + '</strong></div>' +
+                    '<div class="advisor-metric"><span>Ahorro anual</span><strong>' + escapeHtml(advisorAnnual) + '</strong></div>' +
+                    '<div class="advisor-metric"><span>Producto / tarifa</span><strong>' + escapeHtml(advisorTariff) + '</strong></div>' +
+                    '</div>' +
+                    '<div class="advisor-rationale">' +
+                    '<p><strong>Criterio aplicado:</strong> comparaci&oacute;n del coste del periodo analizado frente a la factura actual, revisando t&eacute;rmino de energ&iacute;a, potencia, servicios, impuestos y coste final.</p>' +
+                    '<p><strong>Antes de contratar:</strong> confirmar permanencia, servicios incluidos, vigencia de precios, IVA aplicado y condiciones de renovaci&oacute;n.</p>' +
+                    '</div>' +
+                    '</section>';
 
-                // ---- comparativa económica (columnas dinámicas, 1-3 ofertas) ----
-                var comparativaHtml = '';
-                if (r.facturaActualEstimada) {
-                    var headerCells = '<td>Concepto</td><td class="num">Factura actual</td>' +
-                        ofertas.map(function (o) { return '<td class="num">' + (multi ? '' : 'Oferta ') + escapeHtml(o.comercializadora || 'Oferta') + '</td>'; }).join('');
-                    var bodyCells = '<td>' + periodoLabel + '</td><td class="num">' + escapeHtml(r.facturaActualEstimada) + '</td>' +
-                        ofertas.map(function (o) {
-                            var ofertaVal = parseEuro(o.totalOferta);
-                            var diffVal = (facturaVal !== null && ofertaVal !== null) ? (ofertaVal - facturaVal) : null;
-                            var diffClass = diffVal === null ? '' : (diffVal < 0 ? 'diff-negative' : (diffVal > 0 ? 'diff-positive' : ''));
-                            return '<td class="num">' + escapeHtml(o.totalOferta || '—') +
-                                '<div class="diff-sub ' + diffClass + '">' + formatDiffEuro(diffVal) + '</div></td>';
-                        }).join('');
-                    comparativaHtml =
-                        '<p class="section-intro">Comparativa económica del periodo analizado' + (multi ? ', frente a tu factura actual' : '') + ':</p>' +
-                        '<table class="data-table comparativa-table"><thead><tr>' + headerCells + '</tr></thead>' +
-                        '<tbody><tr>' + bodyCells + '</tr></tbody></table>';
-                }
+                // ---- intro de factura actual (una sola vez, no repetida por tarjeta) ----
+                var facturaIntroHtml = (multi && r.facturaActualEstimada)
+                    ? '<p class="section-intro">Tu factura actual de referencia es de <strong>' + escapeHtml(r.facturaActualEstimada) + '</strong>' +
+                        (r.periodoDescripcion ? ' en un periodo de ' + escapeHtml(r.periodoDescripcion) : '') +
+                        '. Así queda cada alternativa frente a ese importe:</p>'
+                    : '';
 
-                // ---- tarjetas de ahorro (una por oferta) ----
+                // ---- tarjetas de ahorro (una por oferta, color de acento por posición) ----
                 var bestIdx = -1, bestPct = null;
                 ofertas.forEach(function (o, i) {
                     var p = parsePercent(o.ahorroPorcentaje);
@@ -754,11 +780,12 @@
                 var savingsCardsHtml = ofertas.map(function (o, i) {
                     var pct = parsePercent(o.ahorroPorcentaje);
                     var isBest = multi && i === bestIdx;
+                    var accentClass = multi ? ' offer-accent-' + (i + 1) : '';
                     var subParts = [];
-                    if (r.facturaActualEstimada) subParts.push('Factura actual: ' + escapeHtml(r.facturaActualEstimada));
+                    if (!multi && r.facturaActualEstimada) subParts.push('Factura actual: ' + escapeHtml(r.facturaActualEstimada));
                     subParts.push('Oferta: ' + escapeHtml(o.totalOferta || '—'));
                     if (o.ahorroAnualEstimado) subParts.push('Ahorro anual estimado: ' + escapeHtml(o.ahorroAnualEstimado));
-                    return '<div class="savings-card' + (isBest ? ' savings-card-best' : '') + '">' +
+                    return '<div class="savings-card' + accentClass + (isBest ? ' savings-card-best' : '') + '">' +
                         gaugeSVG(pct) +
                         '<div class="savings-copy">' +
                         (multi ? '<p class="savings-crm">' + escapeHtml(o.comercializadora || 'Comercializadora') + (isBest ? '<span class="best-tag">Mayor ahorro</span>' : '') + '</p>' : '') +
@@ -768,7 +795,7 @@
                         '</div>';
                 }).join('');
 
-                // ---- desglose por oferta ----
+                // ---- desglose por oferta (bloque con borde de acento a juego con la tarjeta) ----
                 var desgloseHtml = ofertas.map(function (o, i) {
                     var rows = (Array.isArray(o.desglose) ? o.desglose : []).map(function (row) {
                         return '<tr><td>' + escapeHtml(row.concepto) + '</td><td class="num">' + escapeHtml(row.importe) + '</td></tr>';
@@ -776,23 +803,39 @@
                     var heading = multi
                         ? '<h3 class="subsection-title">2.' + (i + 1) + ' · ' + escapeHtml(o.comercializadora || 'Oferta') + (o.productoTarifa ? ' — ' + escapeHtml(o.productoTarifa) : '') + '</h3>'
                         : '<p class="section-intro" style="margin-top:2px;">Desglose del importe ofertado:</p>';
-                    return heading + '<table class="data-table">' + rows +
-                        '<tr class="total"><td class="label">TOTAL OFERTA</td><td class="num">' + escapeHtml(o.totalOferta || '—') + '</td></tr></table>';
+                    var accentClass = multi ? ' offer-accent-' + (i + 1) : '';
+                    return '<div class="offer-block' + accentClass + '">' + heading + '<table class="data-table">' + rows +
+                        '<tr class="total"><td class="label">TOTAL OFERTA</td><td class="num">' + escapeHtml(o.totalOferta || '—') + '</td></tr></table></div>';
                 }).join('');
 
-                // ---- recomendación ----
+                // ---- recomendación (fichas comparables cuando hay varias ofertas) ----
                 var recomendacionHtml;
                 if (multi) {
-                    recomendacionHtml = ofertas.map(function (o) {
+                    var alternativeHtml = ofertas.slice(1).map(function (o) {
+                        return '<li><strong>' + escapeHtml(o.comercializadora || 'Oferta') + ':</strong> ' +
+                            (o.ahorroImporte ? 'ahorro estimado de ' + escapeHtml(o.ahorroImporte) : 'alternativa analizada') +
+                            (o.ahorroPorcentaje ? ' (' + escapeHtml(o.ahorroPorcentaje) + ')' : '') +
+                            (o.totalOferta ? ', con total ofertado de ' + escapeHtml(o.totalOferta) : '') +
+                            '.</li>';
+                    }).join('');
+                    recomendacionHtml = '<div class="professional-recommendation">' +
+                        '<p class="offer-recommendation-name">Recomendaci&oacute;n profesional</p>' +
+                        '<p class="section-intro">' + advisorVerdict + ' El ahorro estimado es de <strong>' + advisorSaving + '</strong>' +
+                        (recommendedOffer.totalOferta ? ' con un coste ofertado de <strong>' + escapeHtml(recommendedOffer.totalOferta) + '</strong>' : '') +
+                        '. Es la opci&oacute;n que mejor equilibra coste previsto y simplicidad de cambio con los datos disponibles.</p>' +
+                        (recommendedOffer.resumenRecomendacion ? '<p class="section-intro">' + escapeHtml(recommendedOffer.resumenRecomendacion) + '</p>' : '') +
+                        '</div>' +
+                        (alternativeHtml ? '<div class="alternatives-note"><p class="offer-recommendation-name">Lectura de alternativas</p><ul>' + alternativeHtml + '</ul></div>' : '') +
+                        ofertas.map(function (o, i) {
                         var puntos = Array.isArray(o.puntosClave) ? o.puntosClave : [];
                         var puntosLi = puntos.map(function (p) { return '<li>' + escapeHtml(p) + '</li>'; }).join('');
-                        return '<div class="offer-recommendation">' +
-                            '<p class="offer-recommendation-name">' + escapeHtml(o.comercializadora || 'Comercializadora') + '</p>' +
+                        return '<div class="offer-recommendation offer-accent-' + (i + 1) + '">' +
+                            '<p class="offer-recommendation-name">' + (i === 0 ? 'Opci&oacute;n recomendada · ' : '') + escapeHtml(o.comercializadora || 'Comercializadora') + '</p>' +
                             (o.resumenRecomendacion ? '<p class="section-intro">' + escapeHtml(o.resumenRecomendacion) + '</p>' : '') +
                             (puntosLi ? '<ul class="key-points">' + puntosLi + '</ul>' : '') +
                             '</div>';
                     }).join('') +
-                        '<p class="section-intro">Te presentamos estas alternativas de forma imparcial, sin inclinarnos por ninguna comercializadora concreta — la decisión final es tuya.</p>';
+                        '<p class="section-intro">La recomendaci&oacute;n se formula con criterio econ&oacute;mico y operativo. La decisi&oacute;n final debe tomarse tras validar las condiciones contractuales definitivas de la comercializadora elegida.</p>';
                 } else {
                     var puntos = Array.isArray(ofertas[0].puntosClave) ? ofertas[0].puntosClave : [];
                     var puntosLi = puntos.map(function (p) { return '<li>' + escapeHtml(p) + '</li>'; }).join('');
@@ -820,17 +863,18 @@
                     '</div>' +
                     '<div class="toolbar-left">' +
                     '<button class="btn btn-danger btn-sm" id="btn-delete">Eliminar</button>' +
-                    '<button class="btn btn-primary btn-sm" id="btn-print">Exportar a PDF</button>' +
+                    '<button class="btn btn-ghost btn-sm" id="btn-print" title="Vista previa en pantalla — no es el documento final">Vista previa (imprimir)</button>' +
+                    '<button class="btn btn-primary btn-sm" id="btn-download-pdf">Descargar informe para el cliente</button>' +
                     '</div>' +
                     '</div>' +
                     '<div class="report-printable" id="report-printable">' +
                     brandHeaderHtml +
-                    '<p class="report-kicker">Informe ejecutivo · ' + (multi ? 'Comparativa de comercializadoras' : 'Propuesta de cambio de comercializadora') + '</p>' +
+                    '<p class="report-kicker">Informe profesional · Asesor&iacute;a energ&eacute;tica</p>' +
                     '<h1 class="report-title">' + title + '</h1>' +
                     '<p class="report-subtitle">' + subtitle + '</p>' +
                     (multi ? '<p class="report-subtitle" style="margin-top:-16px;">Comparando: ' + comparingLine + '</p>' : '') +
 
-                    '<div class="ficha">' +
+                    '<div class="ficha ficha-client">' +
                     editableRow('Cliente', 'cliente', '[Nombre del cliente]') +
                     editableRow('Contacto cliente', 'telefonoCliente', '[Teléfono cliente]') +
                     editableRow('Email cliente', 'emailCliente', '[Email cliente]') +
@@ -842,9 +886,11 @@
                         extractedRow('Permanencia', ofertas[0].permanencia) +
                         extractedRow('Referencia de la oferta', ofertas[0].referenciaOferta)) +
                     '</div>' +
-                    '<p class="helper-note">En rojo, los campos que no vienen en el documento de oferta o que puedes completar tú.</p>' +
+                    '<p class="helper-note no-print">En rojo, los campos que no vienen en el documento de oferta o que puedes completar tú.</p>' +
 
-                    '<h2 class="section-title">1 · Situación actual</h2>' +
+                    advisorSummaryHtml +
+
+                    '<h2 class="section-title">1 · Diagn&oacute;stico de partida</h2>' +
                     '<div class="ficha">' +
                     infoRow('Tarifa de acceso', r.tarifaAcceso) +
                     infoRow('Periodo analizado', r.periodoDescripcion) +
@@ -855,19 +901,19 @@
                     infoRow('Coste estimado factura actual', r.facturaActualEstimada) +
                     '</div>' +
 
-                    '<h2 class="section-title">' + (multi ? '2 · Las propuestas' : '2 · La propuesta') + '</h2>' +
-                    comparativaHtml +
+                    '<h2 class="section-title">' + (multi ? '2 · An&aacute;lisis de propuestas' : '2 · An&aacute;lisis de la propuesta') + '</h2>' +
+                    facturaIntroHtml +
 
                     '<div class="savings-cards-row">' + savingsCardsHtml + '</div>' +
 
                     desgloseHtml +
 
-                    '<h2 class="section-title">3 · Recomendación</h2>' +
+                    '<h2 class="section-title">3 · Recomendaci&oacute;n y condiciones</h2>' +
                     recomendacionHtml +
                     '<div class="cta-box">' +
-                    '<p class="cta-title">¿Damos el siguiente paso?</p>' +
-                    '<p class="cta-line">Confirma tu decisión contactando con tu comercial asignado (datos arriba).</p>' +
-                    '<p class="cta-line">Nos encargamos de toda la gestión del cambio: sin cortes de suministro ni papeleo por tu parte.</p>' +
+                    '<p class="cta-title">Siguiente paso recomendado</p>' +
+                    '<p class="cta-line">Validamos contigo las condiciones finales de la oferta elegida y dejamos constancia de permanencia, servicios incluidos e impuestos aplicados.</p>' +
+                    '<p class="cta-line">Si confirmas el cambio, coordinamos la gesti&oacute;n sin cortes de suministro ni papeleo innecesario por tu parte.</p>' +
                     '</div>' +
 
                     '<p class="disclaimer">Informe generado automáticamente a partir de los documentos de oferta subidos. Verifica los importes con los documentos originales antes de presentarlo al cliente. Los precios quedan sujetos a las condiciones contractuales de cada comercializadora.</p>' +
@@ -881,11 +927,26 @@
                         currentRecord[field] = e.target.value;
                         var printSpan = e.target.parentElement.querySelector('.field-print');
                         if (printSpan) printSpan.textContent = e.target.value || printSpan.dataset.placeholder;
+                        var row = e.target.closest('.ficha-row');
+                        if (row) row.classList.toggle('ficha-row-empty', !e.target.value);
                         scheduleSave();
                     });
                 });
                 var btnPrint = document.getElementById('btn-print');
                 if (btnPrint) btnPrint.addEventListener('click', function () { window.print(); });
+                var btnDownloadPdf = document.getElementById('btn-download-pdf');
+                if (btnDownloadPdf) btnDownloadPdf.addEventListener('click', function () {
+                    if (window.PdfExport && window.PdfExport.download) {
+                        try {
+                            window.PdfExport.download(currentRecord, { name: brandName, logo: brandLogo });
+                        } catch (err) {
+                            console.error(err);
+                            alert('No se ha podido generar el PDF. Inténtalo de nuevo.');
+                        }
+                    } else {
+                        alert('No se ha podido cargar el generador de PDF. Recarga la página e inténtalo de nuevo.');
+                    }
+                });
                 var btnDelete = document.getElementById('btn-delete');
                 if (btnDelete) btnDelete.addEventListener('click', async function () {
                     if (!confirm('¿Eliminar este informe del historial? No se puede deshacer.')) return;
