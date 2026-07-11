@@ -368,19 +368,33 @@
         var clientFicha = buildClientFichaBlock(record);
         if (clientFicha) content.push(clientFicha);
 
-        content.push(sectionTitleBlock('1 · Situación actual'));
-        content.push(buildSituacionActualBlock(record));
+        // Cada título de sección se agrupa con SOLO su primer bloque de contenido
+        // en un stack unbreakable — así el título nunca puede quedar huérfano al
+        // final de una página, sin forzar la sección entera (que puede ser larga,
+        // p.ej. 3 ofertas) a moverse en bloque y dejar un hueco en blanco grande.
+        content.push({
+            unbreakable: true,
+            stack: [sectionTitleBlock('1 · Situación actual'), buildSituacionActualBlock(record)]
+        });
 
-        content.push(sectionTitleBlock(multi ? '2 · Las propuestas' : '2 · La propuesta'));
         var bestIdx = 0; // ofertas ya vienen ordenadas de mayor a menor ahorro
-        ofertas.forEach(function (oferta, idx) {
-            content.push(offerSection(oferta, idx, idx === bestIdx, multi));
+        var offerSections = ofertas.map(function (oferta, idx) {
+            return offerSection(oferta, idx, idx === bestIdx, multi);
         });
+        content.push({
+            unbreakable: true,
+            stack: [sectionTitleBlock(multi ? '2 · Las propuestas' : '2 · La propuesta'), offerSections[0]]
+        });
+        offerSections.slice(1).forEach(function (s) { content.push(s); });
 
-        content.push(sectionTitleBlock('3 · Recomendación'));
-        ofertas.forEach(function (oferta, idx) {
-            content.push(offerRecommendationBlock(oferta, idx, idx === bestIdx, multi));
+        var recommendationBlocks = ofertas.map(function (oferta, idx) {
+            return offerRecommendationBlock(oferta, idx, idx === bestIdx, multi);
         });
+        content.push({
+            unbreakable: true,
+            stack: [sectionTitleBlock('3 · Recomendación'), recommendationBlocks[0]]
+        });
+        recommendationBlocks.slice(1).forEach(function (b) { content.push(b); });
         if (multi) {
             content.push({
                 text: 'Te presentamos estas alternativas de forma imparcial, sin inclinarnos por ninguna comercializadora concreta — la decisión final es tuya.',
