@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Informes de Ahorro Energético</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+
+    <div id="app">
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="brand-mark">A</div>
+                <div>
+                    <div class="brand-text">Informes de Ahorro</div>
+                    <div class="brand-sub">Asesoría energética</div>
+                </div>
+            </div>
+            <nav class="tabs">
+                <button class="nav-btn active" id="nav-new">Nuevo informe</button>
+                <button class="nav-btn" id="nav-history">Historial <span class="count-badge"
+                        id="history-count">0</span></button>
+                <button class="nav-btn" id="nav-settings" style="display:none;">Ajustes <span class="count-badge"
+                        id="settings-badge" style="display:none;">!</span></button>
+            </nav>
+            <p class="sidebar-hint" id="sidebar-hint">Sube la oferta en PDF de cualquier comercializadora. La IA la lee
+                y prepara el informe — no hace falta que vuelvas a pedírmelo cada vez.</p>
+        </aside>
+        <main class="main" id="main"></main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
