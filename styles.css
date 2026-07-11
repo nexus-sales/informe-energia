@@ -413,6 +413,27 @@
             max-width: 820px;
         }
 
+        .report-brand-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 0 0 16px;
+        }
+
+        .report-brand-logo {
+            max-height: 40px;
+            max-width: 160px;
+            width: auto;
+            object-fit: contain;
+        }
+
+        .report-brand-name {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 15px;
+            color: var(--navy-dark);
+        }
+
         .report-kicker {
             font-family: var(--font-mono);
             font-size: 10.5px;

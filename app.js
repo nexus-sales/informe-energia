@@ -14,8 +14,14 @@
             var isStandalone = (typeof window.storage === 'undefined');
             var storageAvailable = true; // siempre hay algo (window.storage o localStorage)
             var API_KEY_LS = 'informes-ahorro-energia:api-key';
+            var BRAND_NAME_KEY = 'brand-name';
+            var BRAND_LOGO_KEY = 'brand-logo';
+            var BRAND_LOGO_MAX_WIDTH = 320;
+            var brandName = '';
+            var brandLogo = '';
 
-            var mainEl, navNewEl, navHistoryEl, navSettingsEl, historyCountEl, settingsBadgeEl, sidebarHintEl;
+            var mainEl, navNewEl, navHistoryEl, navSettingsEl, historyCountEl, settingsBadgeEl, sidebarHintEl,
+                brandMarkEl, brandTextEl, brandSubEl;
 
             // ---------------- utils ----------------
             function escapeHtml(v) {
@@ -81,6 +87,44 @@
                 if (!key) return '';
                 if (key.length <= 8) return '••••••••';
                 return key.slice(0, 7) + '…' + key.slice(-4);
+            }
+            function resizeImageToDataUrl(file, maxWidth) {
+                return new Promise(function (resolve, reject) {
+                    var reader = new FileReader();
+                    reader.onload = function () {
+                        var img = new Image();
+                        img.onload = function () {
+                            var scale = Math.min(1, maxWidth / img.width);
+                            var w = Math.max(1, Math.round(img.width * scale));
+                            var h = Math.max(1, Math.round(img.height * scale));
+                            var canvas = document.createElement('canvas');
+                            canvas.width = w; canvas.height = h;
+                            var ctx = canvas.getContext('2d');
+                            ctx.drawImage(img, 0, 0, w, h);
+                            var mime = file.type === 'image/jpeg' ? 'image/jpeg' : 'image/png';
+                            try {
+                                resolve(mime === 'image/jpeg' ? canvas.toDataURL(mime, 0.85) : canvas.toDataURL(mime));
+                            } catch (e) { reject(e); }
+                        };
+                        img.onerror = function () { reject(new Error('No se pudo leer la imagen.')); };
+                        img.src = String(reader.result);
+                    };
+                    reader.onerror = function () { reject(new Error('No se pudo leer el archivo.')); };
+                    reader.readAsDataURL(file);
+                });
+            }
+            async function loadBrand() {
+                brandName = (await getStorage(BRAND_NAME_KEY)) || '';
+                brandLogo = (await getStorage(BRAND_LOGO_KEY)) || '';
+            }
+            function applyBrand() {
+                if (brandMarkEl) {
+                    brandMarkEl.innerHTML = brandLogo
+                        ? '<img src="' + brandLogo + '" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:8px;">'
+                        : 'A';
+                }
+                if (brandTextEl) brandTextEl.textContent = brandName || 'Informes de Ahorro';
+                if (brandSubEl) brandSubEl.style.display = brandName ? 'none' : '';
             }
 
             // ---------------- storage backend ----------------
@@ -355,6 +399,9 @@
                 historyCountEl = document.getElementById('history-count');
                 settingsBadgeEl = document.getElementById('settings-badge');
                 sidebarHintEl = document.getElementById('sidebar-hint');
+                brandMarkEl = document.getElementById('brand-mark');
+                brandTextEl = document.getElementById('brand-text');
+                brandSubEl = document.getElementById('brand-sub');
                 navNewEl.addEventListener('click', function () {
                     mode = 'upload'; currentRecord = null; draftOfertas = []; renderMain();
                 });
@@ -364,8 +411,8 @@
                 navSettingsEl.addEventListener('click', function () {
                     mode = 'settings'; renderMain();
                 });
+                navSettingsEl.style.display = '';
                 if (isStandalone) {
-                    navSettingsEl.style.display = '';
                     if (settingsBadgeEl) settingsBadgeEl.style.display = getApiKey() ? 'none' : '';
                     if (sidebarHintEl) sidebarHintEl.textContent = 'Ejecutándose fuera de Claude (modo standalone). Necesitas tu propia clave de la API de Anthropic — configúrala en "Ajustes".';
                 }
@@ -394,28 +441,103 @@
             // ---------------- render: settings ----------------
             function renderSettings() {
                 var existing = getApiKey();
+                var brandPreviewHtml = brandLogo
+                    ? '<img src="' + brandLogo + '" alt="" style="display:block; max-width:160px; max-height:70px; margin-bottom:12px; border-radius:8px; border:1px solid var(--line); background:#fff;">'
+                    : '';
+
+                var apiKeySectionHtml = isStandalone ?
+                    ('<h2 class="section-title">Clave de la API de Anthropic</h2>' +
+                        '<p class="page-sub">Esta copia se está ejecutando fuera de Claude (servidor local u otro hosting), así que necesita tu propia clave para poder leer las ofertas. Se guarda solo en este navegador — nunca se escribe en el archivo ni se envía a ningún sitio salvo a la API de Anthropic.</p>' +
+                        '<div class="ficha" style="max-width:520px;">' +
+                        '<div class="ficha-row">' +
+                        '<span class="ficha-label">Estado</span>' +
+                        '<span class="ficha-value ' + (existing ? '' : 'missing') + '">' + (existing ? ('Configurada (' + escapeHtml(maskKey(existing)) + ')') : 'Sin configurar') + '</span>' +
+                        '</div>' +
+                        '</div>' +
+                        '<div style="max-width:520px; margin-top:18px;">' +
+                        '<input type="password" id="api-key-input" placeholder="sk-ant-…" style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; font-family:var(--font-mono); font-size:13px; margin-bottom:10px;" autocomplete="off" spellcheck="false">' +
+                        '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
+                        '<button class="btn btn-primary btn-sm" id="btn-save-key">Guardar clave</button>' +
+                        '<button class="btn btn-ghost btn-sm" id="btn-test-key">Probar conexión</button>' +
+                        '<button class="btn btn-danger btn-sm" id="btn-clear-key">Borrar clave</button>' +
+                        '</div>' +
+                        '<p id="key-test-result" style="font-size:12.5px; margin-top:12px;"></p>' +
+                        '</div>' +
+                        '<p class="helper-note" style="max-width:520px; margin-top:24px;">' +
+                        '¿No tienes clave? Consíguela en <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com/settings/keys</a> (necesita un método de pago; el uso se factura por tokens en tu cuenta de Anthropic, aparte de tu plan de Claude.ai).' +
+                        '</p>')
+                    : '';
+
                 mainEl.innerHTML =
                     '<p class="eyebrow">Ajustes</p>' +
-                    '<h1 class="page-title">Clave de la API de Anthropic</h1>' +
-                    '<p class="page-sub">Esta copia se está ejecutando fuera de Claude (servidor local u otro hosting), así que necesita tu propia clave para poder leer las ofertas. Se guarda solo en este navegador — nunca se escribe en el archivo ni se envía a ningún sitio salvo a la API de Anthropic.</p>' +
-                    '<div class="ficha" style="max-width:520px;">' +
-                    '<div class="ficha-row">' +
-                    '<span class="ficha-label">Estado</span>' +
-                    '<span class="ficha-value ' + (existing ? '' : 'missing') + '">' + (existing ? ('Configurada (' + escapeHtml(maskKey(existing)) + ')') : 'Sin configurar') + '</span>' +
+                    '<h1 class="page-title">Marca</h1>' +
+                    '<p class="page-sub">Personaliza el nombre de tu empresa y el logo. Se usan en la barra lateral y en la cabecera del informe que le entregas al cliente.</p>' +
+
+                    '<div style="max-width:520px;">' +
+                    '<label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:6px;">Nombre de la empresa</label>' +
+                    '<input type="text" id="brand-name-input" placeholder="Nombre de tu empresa" value="' + escapeHtml(brandName) + '" style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; font-family:var(--font-body); font-size:13px; margin-bottom:10px;">' +
+                    '<div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:26px;">' +
+                    '<button class="btn btn-primary btn-sm" id="btn-save-brand-name">Guardar nombre</button>' +
                     '</div>' +
+
+                    '<label style="display:block; font-size:12.5px; font-weight:600; color:var(--muted); margin-bottom:6px;">Logo</label>' +
+                    brandPreviewHtml +
+                    '<div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">' +
+                    '<input type="file" id="brand-logo-input" accept="image/png,image/jpeg,image/webp" hidden>' +
+                    '<button class="btn btn-ghost btn-sm" id="btn-choose-logo">' + (brandLogo ? 'Cambiar logo' : 'Subir logo') + '</button>' +
+                    (brandLogo ? '<button class="btn btn-danger btn-sm" id="btn-remove-logo">Quitar logo</button>' : '') +
                     '</div>' +
-                    '<div style="max-width:520px; margin-top:18px;">' +
-                    '<input type="password" id="api-key-input" placeholder="sk-ant-…" style="width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; font-family:var(--font-mono); font-size:13px; margin-bottom:10px;" autocomplete="off" spellcheck="false">' +
-                    '<div style="display:flex; gap:8px; flex-wrap:wrap;">' +
-                    '<button class="btn btn-primary btn-sm" id="btn-save-key">Guardar clave</button>' +
-                    '<button class="btn btn-ghost btn-sm" id="btn-test-key">Probar conexión</button>' +
-                    '<button class="btn btn-danger btn-sm" id="btn-clear-key">Borrar clave</button>' +
+                    '<p id="brand-msg" style="font-size:12.5px; margin-top:10px;"></p>' +
+                    '<p class="helper-note" style="margin-top:2px;">PNG, JPEG o WEBP. Se redimensiona automáticamente.</p>' +
                     '</div>' +
-                    '<p id="key-test-result" style="font-size:12.5px; margin-top:12px;"></p>' +
-                    '</div>' +
-                    '<p class="helper-note" style="max-width:520px; margin-top:24px;">' +
-                    '¿No tienes clave? Consíguela en <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com/settings/keys</a> (necesita un método de pago; el uso se factura por tokens en tu cuenta de Anthropic, aparte de tu plan de Claude.ai).' +
-                    '</p>';
+
+                    apiKeySectionHtml;
+
+                document.getElementById('btn-save-brand-name').addEventListener('click', async function () {
+                    var msgEl = document.getElementById('brand-msg');
+                    var nameInput = document.getElementById('brand-name-input');
+                    var newName = nameInput.value.trim();
+                    var ok = await setStorage(BRAND_NAME_KEY, newName);
+                    if (!ok) { msgEl.textContent = 'No se ha podido guardar el nombre.'; msgEl.style.color = 'var(--red)'; return; }
+                    brandName = newName;
+                    applyBrand();
+                    msgEl.textContent = 'Nombre guardado.'; msgEl.style.color = 'var(--teal-dark)';
+                });
+                document.getElementById('btn-choose-logo').addEventListener('click', function () {
+                    document.getElementById('brand-logo-input').click();
+                });
+                document.getElementById('brand-logo-input').addEventListener('change', async function (e) {
+                    var file = e.target.files && e.target.files[0];
+                    if (!file) return;
+                    var msgEl = document.getElementById('brand-msg');
+                    if (['image/png', 'image/jpeg', 'image/webp'].indexOf(file.type) === -1) {
+                        msgEl.textContent = 'Formato no soportado. Sube una imagen PNG, JPEG o WEBP.';
+                        msgEl.style.color = 'var(--red)';
+                        return;
+                    }
+                    msgEl.textContent = 'Procesando logo…'; msgEl.style.color = 'var(--muted)';
+                    try {
+                        var dataUrl = await resizeImageToDataUrl(file, BRAND_LOGO_MAX_WIDTH);
+                        var ok = await setStorage(BRAND_LOGO_KEY, dataUrl);
+                        if (!ok) throw new Error('storage set failed');
+                        brandLogo = dataUrl;
+                        applyBrand();
+                        renderSettings();
+                    } catch (err) {
+                        console.error(err);
+                        msgEl.textContent = 'No se ha podido guardar el logo (puede que se haya superado el espacio disponible).';
+                        msgEl.style.color = 'var(--red)';
+                    }
+                });
+                var btnRemoveLogo = document.getElementById('btn-remove-logo');
+                if (btnRemoveLogo) btnRemoveLogo.addEventListener('click', async function () {
+                    await deleteStorageKey(BRAND_LOGO_KEY);
+                    brandLogo = '';
+                    applyBrand();
+                    renderSettings();
+                });
+
+                if (!isStandalone) return;
 
                 var input = document.getElementById('api-key-input');
                 if (existing) input.value = existing;
@@ -680,6 +802,13 @@
 
                 var fuentes = ofertas.map(function (o) { return o.nombreArchivo; }).filter(Boolean).join(' · ');
 
+                var brandHeaderHtml = (brandName || brandLogo)
+                    ? '<div class="report-brand-header">' +
+                        (brandLogo ? '<img src="' + brandLogo + '" alt="" class="report-brand-logo">' : '') +
+                        (brandName ? '<span class="report-brand-name">' + escapeHtml(brandName) + '</span>' : '') +
+                        '</div>'
+                    : '';
+
                 var backBtn = (mode === 'report-detail')
                     ? '<button class="btn btn-ghost btn-sm" id="btn-back-history">‹ Volver al historial</button>'
                     : '';
@@ -695,6 +824,7 @@
                     '</div>' +
                     '</div>' +
                     '<div class="report-printable" id="report-printable">' +
+                    brandHeaderHtml +
                     '<p class="report-kicker">Informe ejecutivo · ' + (multi ? 'Comparativa de comercializadoras' : 'Propuesta de cambio de comercializadora') + '</p>' +
                     '<h1 class="report-title">' + title + '</h1>' +
                     '<p class="report-subtitle">' + subtitle + '</p>' +
@@ -821,6 +951,8 @@
             // ---------------- init ----------------
             document.addEventListener('DOMContentLoaded', async function () {
                 buildShell();
+                await loadBrand();
+                applyBrand();
                 await refreshIndex();
                 renderMain();
             });
