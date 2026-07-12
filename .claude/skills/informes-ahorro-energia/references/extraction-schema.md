@@ -28,12 +28,29 @@ notasInstalacion       string | null   (autoconsumo solar, excedentes, etc.)
 desglose               [ { concepto, importe } ]   (SOLO conceptos de coste individuales:
                                                     consumo por periodo, potencia por periodo,
                                                     servicios adicionales con su propio importe,
-                                                    impuestos aplicados a un concepto concreto.
-                                                    NO incluyas "Subtotal", "Total", "Total
-                                                    oferta" ni "IVA total"/IVA acumulado del
-                                                    documento original — el documento final
-                                                    calcula y muestra el total él mismo, y
-                                                    repetirlo aquí lo duplica.)
+                                                    y CUALQUIER línea de impuesto o tasa que el
+                                                    documento muestre con su propio importe —
+                                                    IVA, IGIC, IEE/Impuesto Eléctrico, o cualquier
+                                                    otro nombre que use el documento. Transcribe
+                                                    el nombre y el porcentaje EXACTAMENTE como los
+                                                    indica el documento, letra por letra (nunca
+                                                    inventes, calcules ni asumas un tipo
+                                                    impositivo que el documento no indique
+                                                    explícitamente). Lo ÚNICO que se excluye es la
+                                                    fila que ya sea el TOTAL FINAL del documento
+                                                    tras aplicar impuestos — "Subtotal", "Total",
+                                                    "Total oferta" o un resumen tipo "Base
+                                                    Imponible + Impuesto = X" — nunca la línea del
+                                                    impuesto en sí; el documento final calcula y
+                                                    muestra ese total él mismo, y repetirlo aquí
+                                                    lo duplica.
+                                                    IVA, IGIC e IEE/Impuesto Eléctrico son
+                                                    impuestos distintos entre sí, nunca sinónimos
+                                                    ni intercambiables. Nunca asumas, calcules ni
+                                                    infieras qué impuesto aplica o a qué tipo (ni
+                                                    por ubicación, ni por tipo de contrato, ni por
+                                                    ningún otro criterio): si el documento no lo
+                                                    dice explícitamente, no lo pongas.)
 totalOferta            string
 facturaActualEstimada  string | null   (derivado si hace falta: total + ahorro €)
 ahorroImporte          string | null

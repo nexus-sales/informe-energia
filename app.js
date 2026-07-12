@@ -246,7 +246,7 @@
                     '"potenciaContratada": string o null,',
                     '"consumoPeriodo": string o null,',
                     '"notasInstalacion": string o null (p.ej. autoconsumo solar, excedentes, si se menciona),',
-                    '"desglose": [ { "concepto": string, "importe": string } ] (SOLO conceptos de coste individuales: consumo por periodo, potencia por periodo, servicios adicionales con su propio importe, impuestos aplicados a un concepto concreto. NO incluyas líneas de "Subtotal", "Total", "Total oferta" ni "IVA total"/IVA acumulado del documento original — la plantilla del informe calcula y muestra el total final ella misma, y repetirlo aquí lo duplica),',
+                    '"desglose": [ { "concepto": string, "importe": string } ] (SOLO conceptos de coste individuales: consumo por periodo, potencia por periodo, servicios adicionales con su propio importe, y CUALQUIER línea de impuesto o tasa que el documento muestre con su propio importe — IVA, IGIC, IEE/Impuesto Eléctrico, o cualquier otro nombre que use el documento. Transcribe el nombre y el porcentaje EXACTAMENTE como los indica el documento, letra por letra (nunca inventes, calcules ni asumas un tipo impositivo que el documento no indique explícitamente). Lo ÚNICO que se excluye es la fila que ya sea el TOTAL FINAL del documento tras aplicar impuestos — "Subtotal", "Total", "Total oferta" o un resumen tipo "Base Imponible + Impuesto = X" — nunca la línea del impuesto en sí; la plantilla del informe calcula y muestra ese total final ella misma, y repetirlo aquí lo duplica),',
                     '"totalOferta": string (importe total de la oferta),',
                     '"facturaActualEstimada": string o null (si el documento no da el importe de la factura actual pero sí el ahorro en euros, CALCÚLALO sumando total de la oferta + ahorro en euros e indícalo; si no hay datos suficientes, null),',
                     '"ahorroImporte": string o null,',
@@ -267,8 +267,9 @@
                     '- Redacta "resumenRecomendacion" como criterio de asesor energético: indica por qué conviene o no conviene, y menciona cautelas contractuales si aplican.',
                     '- En "puntosClave", prioriza ahorro, permanencia, servicios adicionales, impuestos, potencia/tarifa y próximo paso verificable.',
                     '- En "resumenRecomendacion" y "puntosClave", dirígete siempre al cliente de tú (tuteo): "tu factura", "ahorras", "tu potencia". No uses nunca la forma "usted".',
-                    '- "desglose" no debe contener ninguna fila de subtotal ni total: si dudas si una línea es un total o un concepto individual, exclúyela del array.',
-                    '- "productoTarifa" nunca debe coincidir textualmente con ninguna fila de "desglose": son campos distintos y no deben mezclarse.'
+                    '- "desglose" no debe contener ninguna fila que sea el total final del documento (Subtotal/Total/Total oferta): si dudas si una línea es ese total final o un concepto individual, exclúyela. Esto NO aplica a líneas de impuesto o tasa con su propio importe (IVA, IGIC, IEE/Impuesto Eléctrico, o cualquier otro nombre): esas sí son conceptos individuales y deben incluirse siempre que tengan un importe propio, no un total acumulado.',
+                    '- "productoTarifa" nunca debe coincidir textualmente con ninguna fila de "desglose": son campos distintos y no deben mezclarse.',
+                    '- IVA, IGIC e IEE/Impuesto Eléctrico son impuestos distintos entre sí, nunca sinónimos ni intercambiables. Transcribe el nombre y el porcentaje de cada uno EXACTAMENTE como los indica el documento. Nunca asumas, calcules ni infieras qué impuesto aplica o a qué tipo (ni por ubicación, ni por tipo de contrato, ni por ningún otro criterio): si el documento no lo dice explícitamente, no lo pongas.'
                 ].join('\n');
 
                 var headers = { 'Content-Type': 'application/json' };
