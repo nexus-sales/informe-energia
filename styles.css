@@ -826,43 +826,6 @@
             margin: 0 0 6px;
         }
 
-        .professional-recommendation {
-            border: 1px solid #BFD8D3;
-            border-left: 5px solid var(--teal-dark);
-            background: #F4FAF7;
-            border-radius: 10px;
-            padding: 18px 20px;
-            margin: 0 0 14px;
-            page-break-inside: avoid;
-            break-inside: avoid;
-        }
-
-        .professional-recommendation .section-intro:last-child {
-            margin-bottom: 0;
-        }
-
-        .alternatives-note {
-            border: 1px solid var(--line);
-            border-radius: 10px;
-            background: #FFFFFF;
-            padding: 15px 18px;
-            margin: 0 0 14px;
-            page-break-inside: avoid;
-            break-inside: avoid;
-        }
-
-        .alternatives-note ul {
-            margin: 0;
-            padding-left: 18px;
-        }
-
-        .alternatives-note li {
-            font-size: 12.5px;
-            color: #34424D;
-            line-height: 1.55;
-            margin: 4px 0;
-        }
-
         ul.key-points {
             margin: 0 0 22px;
             padding: 0;
@@ -1064,7 +1027,8 @@
                 display: none !important;
             }
 
-            .ficha-client:not(:has(.ficha-row:not(.ficha-row-empty))) {
+            .ficha-client:not(:has(.ficha-row:not(.ficha-row-empty))),
+            .ficha-notas:not(:has(.ficha-row:not(.ficha-row-empty))) {
                 display: none !important;
             }
 

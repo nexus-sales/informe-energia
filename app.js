@@ -361,6 +361,7 @@
                     telefonoCliente: first.clienteTelefono || '',
                     emailCliente: first.clienteEmail || '',
                     comercial: '', telefonoComercial: '', emailComercial: '',
+                    precioExcedentes: '', observaciones: '',
                     fechaGenerado: new Date().toISOString(),
                     tarifaAcceso: firstNonNullDraft('tarifaAcceso'),
                     periodoDescripcion: firstNonNullDraft('periodoDescripcion'),
@@ -815,24 +816,12 @@
                 }).join('');
 
                 // ---- recomendación (fichas comparables cuando hay varias ofertas) ----
+                // El veredicto general y sus cifras ya se dan una vez en el "Dictamen
+                // del asesor" (advisorSummaryHtml, arriba de todo). Aquí solo va la
+                // narrativa propia de CADA oferta, para no repetir la misma frase.
                 var recomendacionHtml;
                 if (multi) {
-                    var alternativeHtml = ofertas.slice(1).map(function (o) {
-                        return '<li><strong>' + escapeHtml(o.comercializadora || 'Oferta') + ':</strong> ' +
-                            (o.ahorroImporte ? 'ahorro estimado de ' + escapeHtml(o.ahorroImporte) : 'alternativa analizada') +
-                            (o.ahorroPorcentaje ? ' (' + escapeHtml(o.ahorroPorcentaje) + ')' : '') +
-                            (o.totalOferta ? ', con total ofertado de ' + escapeHtml(o.totalOferta) : '') +
-                            '.</li>';
-                    }).join('');
-                    recomendacionHtml = '<div class="professional-recommendation">' +
-                        '<p class="offer-recommendation-name">Recomendaci&oacute;n profesional</p>' +
-                        '<p class="section-intro">' + advisorVerdict + ' El ahorro estimado es de <strong>' + advisorSaving + '</strong>' +
-                        (recommendedOffer.totalOferta ? ' con un coste ofertado de <strong>' + escapeHtml(recommendedOffer.totalOferta) + '</strong>' : '') +
-                        '. Es la opci&oacute;n que mejor equilibra coste previsto y simplicidad de cambio con los datos disponibles.</p>' +
-                        (recommendedOffer.resumenRecomendacion ? '<p class="section-intro">' + escapeHtml(recommendedOffer.resumenRecomendacion) + '</p>' : '') +
-                        '</div>' +
-                        (alternativeHtml ? '<div class="alternatives-note"><p class="offer-recommendation-name">Lectura de alternativas</p><ul>' + alternativeHtml + '</ul></div>' : '') +
-                        ofertas.map(function (o, i) {
+                    recomendacionHtml = ofertas.map(function (o, i) {
                         var puntos = Array.isArray(o.puntosClave) ? o.puntosClave : [];
                         var puntosLi = puntos.map(function (p) { return '<li>' + escapeHtml(p) + '</li>'; }).join('');
                         return '<div class="offer-recommendation offer-accent-' + (i + 1) + '">' +
@@ -905,6 +894,11 @@
                     infoRow('Consumo del periodo', r.consumoPeriodo) +
                     infoRow('Instalación', r.notasInstalacion) +
                     infoRow('Coste estimado factura actual', r.facturaActualEstimada) +
+                    '</div>' +
+
+                    '<div class="ficha ficha-notas">' +
+                    editableRow('Precio de excedentes', 'precioExcedentes', '[Precio de excedentes]') +
+                    editableRow('Observaciones', 'observaciones', '[Observaciones]') +
                     '</div>' +
 
                     '<h2 class="section-title">' + (multi ? '2 · An&aacute;lisis de propuestas' : '2 · An&aacute;lisis de la propuesta') + '</h2>' +

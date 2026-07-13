@@ -150,6 +150,26 @@
         };
     }
 
+    function buildNotesFichaBlock(record) {
+        // Igual criterio que buildClientFichaBlock: solo filas rellenas, sin
+        // placeholders; si ninguna tiene valor, no se imprime ninguna ficha vacía.
+        var candidates = [
+            ['Precio de excedentes', record.precioExcedentes],
+            ['Observaciones', record.observaciones]
+        ];
+        var rows = candidates
+            .filter(function (c) { return c[1]; })
+            .map(function (c) { return fichaRow(c[0], c[1]); });
+
+        if (!rows.length) return null;
+
+        return {
+            table: { widths: [140, '*'], body: rows },
+            layout: bordersTableLayout(),
+            margin: [0, 0, 0, 18]
+        };
+    }
+
     function buildOfferFichaBlock(oferta) {
         var rows = [];
         rows.push(oferta.comercializadora ? fichaRow('Comercializadora', oferta.comercializadora) : fichaRowMissing('Comercializadora'));
@@ -376,6 +396,9 @@
             unbreakable: true,
             stack: [sectionTitleBlock('1 · Situación actual'), buildSituacionActualBlock(record)]
         });
+
+        var notesFicha = buildNotesFichaBlock(record);
+        if (notesFicha) content.push(notesFicha);
 
         var bestIdx = 0; // ofertas ya vienen ordenadas de mayor a menor ahorro
         var offerSections = ofertas.map(function (oferta, idx) {
