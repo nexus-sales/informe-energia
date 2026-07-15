@@ -617,6 +617,45 @@
             font-weight: 500;
         }
 
+        textarea.field-edit-area {
+            width: 100%;
+            max-width: 420px;
+            min-height: 64px;
+            resize: vertical;
+            border: 1px solid transparent;
+            background: #F1F5F4;
+            border-radius: 6px;
+            padding: 6px 8px;
+            font-family: var(--font-body);
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 1.4;
+            color: var(--navy-dark);
+        }
+
+        textarea.field-edit-area:hover {
+            border-color: var(--line);
+        }
+
+        textarea.field-edit-area:focus {
+            outline: none;
+            border-color: var(--teal);
+            background: #fff;
+        }
+
+        textarea.field-edit-area::placeholder {
+            color: #A6B0B8;
+            font-weight: 500;
+        }
+
+        .ficha-row-multiline {
+            align-items: flex-start;
+        }
+
+        .ficha-row-multiline .ficha-label {
+            padding-top: 6px;
+        }
+
         .field-print {
             display: none;
         }
@@ -1019,7 +1058,8 @@
                 max-width: none;
             }
 
-            input.field-edit {
+            input.field-edit,
+            textarea.field-edit-area {
                 display: none !important;
             }
 
@@ -1034,5 +1074,10 @@
 
             .field-print {
                 display: inline !important;
+            }
+
+            .field-print-multiline {
+                display: block !important;
+                white-space: pre-wrap;
             }
         }

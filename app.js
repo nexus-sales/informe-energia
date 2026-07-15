@@ -691,6 +691,16 @@
                     '</span>' +
                     '</div>';
             }
+            function editableTextareaRow(label, field, placeholder) {
+                var value = currentRecord[field] || '';
+                return '<div class="ficha-row ficha-row-multiline' + (value ? '' : ' ficha-row-empty') + '">' +
+                    '<span class="ficha-label">' + label + '</span>' +
+                    '<span class="ficha-value">' +
+                    '<textarea class="field-edit field-edit-area" data-field="' + field + '" placeholder="' + escapeHtml(placeholder) + '" rows="3">' + escapeHtml(value) + '</textarea>' +
+                    '<span class="field-print field-print-multiline">' + (value ? escapeHtml(value) : '') + '</span>' +
+                    '</span>' +
+                    '</div>';
+            }
             function extractedRow(label, value) {
                 var missing = !value;
                 return '<div class="ficha-row"><span class="ficha-label">' + label + '</span>' +
@@ -898,7 +908,7 @@
 
                     '<div class="ficha ficha-notas">' +
                     editableRow('Precio de excedentes', 'precioExcedentes', '[Precio de excedentes]') +
-                    editableRow('Observaciones', 'observaciones', '[Observaciones]') +
+                    editableTextareaRow('Observaciones', 'observaciones', 'Tu valoración, explicación sobre permanencias, etc.') +
                     '</div>' +
 
                     '<h2 class="section-title">' + (multi ? '2 · An&aacute;lisis de propuestas' : '2 · An&aacute;lisis de la propuesta') + '</h2>' +
